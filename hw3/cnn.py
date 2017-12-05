@@ -12,6 +12,7 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import EarlyStopping
 from keras.utils import to_categorical
+from tensorflow.python.client import device_lib
 
 training_file_name = sys.argv[1]
 model_file_name = sys.argv[2]
@@ -81,6 +82,7 @@ model.compile(
 
 model.summary()
 
+print(device_lib.list_local_devices())
 batch_size = 256
 history = model.fit_generator(
     train_datagen.flow(training_x, training_y, batch_size=batch_size),
