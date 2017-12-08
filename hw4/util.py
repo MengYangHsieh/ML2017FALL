@@ -97,3 +97,15 @@ class DataManager:
         data_size = len(X)
         val_size = int(data_size * ratio)
         return (X[val_size:],Y[val_size:]),(X[:val_size],Y[:val_size])
+
+    def read_data(self, name, data_path):
+        print ('read data from %s...'%data_path)
+        all_text = []
+        with open(data_path,'r') as f:
+            lineCount = 0
+            for line in f:
+                if lineCount != 0:
+                    lines = line.partition(',')[2]
+                    all_text.append(lines)
+                lineCount += 1
+        self.data[name] = [all_text]

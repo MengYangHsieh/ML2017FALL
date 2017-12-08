@@ -43,11 +43,15 @@ parser.add_argument('--result_path', default='result.csv',)
 # put model in the same directory
 parser.add_argument('--load_model', default = None)
 parser.add_argument('--save_dir', default = 'model/')
+parser.add_argument('--trainp', default = 'data/training_label.txt')
+parser.add_argument('--trainup', default = 'data/training_nolabel.txt')
+parser.add_argument('--testp', default = 'data/testing.txt')
 args = parser.parse_args()
 
-train_path = 'data/training_label.txt'
-test_path = 'data/testing_data.txt'
-semi_path = 'data/training_nolabel.txt'
+train_path = args.trainp
+test_path = args.testp
+semi_path = args.trainup
+out_path = args.result_path
 
 # build model
 def simpleRNN(args):
@@ -57,9 +61,10 @@ def simpleRNN(args):
     embedding_inputs = Embedding(args.vocab_size, 
                                  args.embedding_dim, 
                                  trainable=True)(inputs)
-    # RNN 
     return_sequence = False
     dropout_rate = args.dropout_rate
+
+    # RNN 
     if args.cell == 'GRU':
         RNN_cell = GRU(args.hidden_size, 
                        return_sequences=return_sequence, 
@@ -68,8 +73,14 @@ def simpleRNN(args):
         RNN_cell = LSTM(args.hidden_size, 
                         return_sequences=return_sequence, 
                         dropout=dropout_rate)
-
     RNN_output = RNN_cell(embedding_inputs)
+
+    # BOW
+    # bow_input = inputs
+    # outputs = Dense(args.hidden_size,
+    #                 activation="relu",
+    #                 kernel_regularizer=regularizers.l2(0.1))(bow_input)
+    # outputs = Dropout(dropout_rate)(outputs)
 
     # DNN layer
     outputs = Dense(args.hidden_size//2, 
@@ -77,7 +88,6 @@ def simpleRNN(args):
                     kernel_regularizer=regularizers.l2(0.1))(RNN_output)
     outputs = Dropout(dropout_rate)(outputs)
     outputs = Dense(1, activation='sigmoid')(outputs)
-        
     model =  Model(inputs=inputs,outputs=outputs)
 
     # optimizer
@@ -90,6 +100,7 @@ def simpleRNN(args):
     return model
 
 def main():
+
     # limit gpu memory usage
     def get_session(gpu_fraction):
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_fraction)
@@ -109,7 +120,8 @@ def main():
         dm.add_data('train_data', train_path, True)
         dm.add_data('semi_data', semi_path, False)
     else:
-        raise Exception ('Implement your testing parser')
+        # raise Exception ('Implement your testing parser')
+        dm.read_data('test_data', test_path)
             
     # prepare tokenizer
     print ('get Tokenizer...')
@@ -165,7 +177,17 @@ def main():
 
     # testing
     elif args.action == 'test' :
-        raise Exception ('Implement your testing function')
+        # raise Exception ('Implement your testing function')
+        predicted_y = model.predict(dm.get_data('test_data'))
+        print(predicted_y)
+        with open(out_path, "w") as f:
+            f.write("id,label\n")
+            for i, y in enumerate(predicted_y):
+                if y >= 0.5:
+                    label = 1
+                else:
+                    label = 0
+                f.write("{:d},{}\n".format(i, label))
 
     # semi-supervised training
     elif args.action == 'semi':
